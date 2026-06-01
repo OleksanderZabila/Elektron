@@ -1,0 +1,149 @@
+.sim-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-top: 3px solid transparent;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: box-shadow 0.15s;
+  min-width: 220px;
+}
+
+.sim-card.winner {
+  box-shadow: 0 0 0 1px rgba(34,197,94,0.4), 0 4px 24px rgba(34,197,94,0.12);
+  border-color: rgba(34,197,94,0.3);
+}
+
+.sim-card.failed {
+  opacity: 0.75;
+}
+
+.sc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sc-agent-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  font-family: var(--mono);
+}
+
+.sc-winner-crown {
+  font-size: 11px;
+  font-weight: 700;
+  color: #22c55e;
+  letter-spacing: 0.5px;
+}
+
+.sc-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.4px;
+}
+
+.sc-status-badge.pass { background: rgba(34,197,94,0.15); color: var(--success); }
+.sc-status-badge.fail { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+.sc-sim-count {
+  font-size: 10px;
+  color: var(--text3);
+  margin-left: auto;
+}
+
+.sc-focus {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.sc-error {
+  font-size: 11px;
+  color: var(--danger);
+}
+
+.sc-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sc-params span {
+  font-size: 10px;
+  font-family: var(--mono);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: var(--text2);
+}
+
+.sc-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+.sc-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 12px;
+}
+
+.sc-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.sc-metric-label {
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.sc-metric-value {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.sc-metric-unit {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--text3);
+  margin-left: 1px;
+}
+
+.sc-reqs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sc-req {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.sc-req.pass { background: rgba(34,197,94,0.07); }
+.sc-req.fail { background: rgba(239,68,68,0.07); }
+
+.sc-req-icon { font-size: 10px; width: 12px; }
+.sc-req.pass .sc-req-icon { color: var(--success); }
+.sc-req.fail .sc-req-icon { color: var(--danger); }
+
+.sc-req-label { color: var(--text2); flex: 1; }
+.sc-req-value { font-family: var(--mono); font-size: 10px; color: var(--text3); }

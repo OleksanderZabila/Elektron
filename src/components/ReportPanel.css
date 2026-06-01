@@ -1,0 +1,185 @@
+.report-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.report-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.report-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text3);
+  text-align: center;
+  padding: 40px;
+}
+
+.report-empty-icon {
+  font-size: 40px;
+  opacity: 0.4;
+}
+
+.report-empty-icon.spin {
+  display: inline-block;
+  animation: spin 1.5s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.report-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.report-empty-body {
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 360px;
+}
+
+/* ── Winner banner ────────────────────────────────────────────────────────── */
+.winner-banner {
+  background: linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(34,197,94,0.04) 100%);
+  border: 1px solid rgba(34,197,94,0.35);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.winner-banner-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.winner-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
+  letter-spacing: 0.6px;
+}
+
+.winner-subagent {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.winner-metrics {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.winner-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.wm-val {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.wm-lbl {
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Charts ───────────────────────────────────────────────────────────────── */
+.charts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.chart-block {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.chart-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Synthesis ────────────────────────────────────────────────────────────── */
+.synthesis-block {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.synthesis-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
+
+.synthesis-text {
+  font-size: 12px;
+  color: var(--text2);
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+/* ── Design cards ─────────────────────────────────────────────────────────── */
+.cards-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text3);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
