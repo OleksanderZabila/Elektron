@@ -3,6 +3,7 @@ import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import dotenv from 'dotenv';
 import { runOrchestrator } from './agent/orchestrator.js';
+import { getEffectiveApiKey, getKeyStatus, setApiKey } from './settings.js';
 
 dotenv.config();
 
@@ -41,15 +42,16 @@ function emit(event) {
   }
 }
 
-ipcMain.handle('agent:start', async () => {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return { error: 'ANTHROPIC_API_KEY is not set. Create a .env file with your key.' };
+ipcMain.handle('agent:start', async (_event, missionText) => {
+  const apiKey = getEffectiveApiKey();
+  if (!apiKey) {
+    return { error: 'No Anthropic API key found. Add it in Settings (gear icon) or a .env file.' };
   }
 
   runAbortController = new AbortController();
 
   try {
-    await runOrchestrator(emit, runAbortController.signal);
+    await runOrchestrator(emit, runAbortController.signal, missionText, apiKey);
     return { success: true };
   } catch (err) {
     if (err.name === 'AbortError') return { cancelled: true };
@@ -67,6 +69,10 @@ ipcMain.handle('agent:cancel', () => {
     runAbortController = null;
   }
 });
+
+// ── Settings (API key) ───────────────────────────────────────────────────────
+ipcMain.handle('settings:getKeyStatus', () => getKeyStatus());
+ipcMain.handle('settings:setApiKey', (_event, key) => setApiKey(key));
 
 app.whenReady().then(() => {
   createWindow();

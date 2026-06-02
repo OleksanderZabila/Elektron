@@ -87,8 +87,9 @@ function ChatMessage({ msg }) {
   );
 }
 
-export default function ChatPanel({ messages, status }) {
+export default function ChatPanel({ messages, status, mission, onMissionChange }) {
   const bottomRef = useRef(null);
+  const running = status === 'running';
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -99,6 +100,24 @@ export default function ChatPanel({ messages, status }) {
       <div className="panel-header">
         <span className="panel-title">Agent Activity</span>
         <span className="panel-count">{messages.length} messages</span>
+      </div>
+
+      <div className="mission-box">
+        <label className="mission-label" htmlFor="mission-input">Mission Prompt</label>
+        <textarea
+          id="mission-input"
+          className="mission-input"
+          value={mission}
+          onChange={(e) => onMissionChange(e.target.value)}
+          disabled={running}
+          spellCheck={false}
+          rows={7}
+        />
+        <div className="mission-hint">
+          {running
+            ? 'Running this brief — editing is locked until the study finishes.'
+            : 'Edit the mission brief, then press Run Study. Payload, cruise speed and wingspan limit are read from this text.'}
+        </div>
       </div>
 
       <div className="chat-body">

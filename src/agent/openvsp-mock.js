@@ -1,10 +1,12 @@
 // Aerodynamic model based on lifting-line theory + DATCOM empirical methods.
 // Simulates OpenVSP analysis for a fixed-wing UAV at ISA sea-level conditions.
 
-const RHO = 1.225;   // kg/m³ — sea-level ISA air density
-const G = 9.81;      // m/s²
-const MTOW = 2.3;    // kg — airframe ~0.8 kg + payload 1.5 kg
-const V_CRUISE = 22; // m/s
+const RHO = 1.225;       // kg/m³ — sea-level ISA air density
+const G = 9.81;          // m/s²
+const AIRFRAME_KG = 0.8; // structure + avionics + propulsion (excludes payload)
+
+// Defaults if the mission brief omits a value.
+const MISSION_DEFAULTS = { payloadKg: 1.5, cruiseMs: 22, wingspanLimit: 2.0 };
 
 const AIRFOILS = {
   'NACA 2412': { cl_alpha_2d: 6.28, cl_max: 1.30, cd_profile: 0.0058, cm_ac: -0.048 },
@@ -16,7 +18,7 @@ function r(val, dec) {
   return Math.round(val * 10 ** dec) / 10 ** dec;
 }
 
-export function runSimulation(params) {
+export function runSimulation(params, mission = {}) {
   const {
     wingspan,
     aspect_ratio,
@@ -26,6 +28,12 @@ export function runSimulation(params) {
     tail_volume_coeff_h,
     tail_volume_coeff_v,
   } = params;
+
+  // Mission-driven operating point (parsed from the user's brief).
+  const m = { ...MISSION_DEFAULTS, ...mission };
+  const V_CRUISE = m.cruiseMs;
+  const MTOW = AIRFRAME_KG + m.payloadKg;
+  const spanLimit = m.wingspanLimit;
 
   const foil = AIRFOILS[airfoil] || AIRFOILS['NACA 4412'];
 
@@ -92,7 +100,7 @@ export function runSimulation(params) {
 
   // Requirements
   const req = {
-    wingspan:   { passed: wingspan <= 2.0,          value: `${r(wingspan,2)} m`,          limit: '≤ 2.0 m' },
+    wingspan:   { passed: wingspan <= spanLimit,    value: `${r(wingspan,2)} m`,          limit: `≤ ${spanLimit} m` },
     ld_ratio:   { passed: LD_ratio >= 12.0,         value: r(LD_ratio, 2).toString(),     limit: '≥ 12.0' },
     long_stab:  { passed: SM >= 0.05 && SM <= 0.25, value: `SM = ${r(SM*100,1)}% MAC`,   limit: '5%–25% MAC' },
     dir_stab:   { passed: Cnbeta > 0,               value: `Cnβ = ${r(Cnbeta,4)}`,       limit: '> 0' },

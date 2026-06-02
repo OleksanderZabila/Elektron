@@ -4,14 +4,17 @@ import { simulationTool } from './tools.js';
 
 const MAX_TOOL_ROUNDS = 5;
 
-function buildSystemPrompt(id, focus) {
+function buildSystemPrompt(id, focus, missionText, mission) {
   return `You are Subagent ${id} in a parallel multi-agent UAV design study.
 
-Mission — Fixed-wing surveillance drone:
-• Payload: 1.5 kg camera/sensor package
-• Cruise speed: 22 m/s
+MISSION BRIEF (verbatim from the user):
+${missionText}
+
+Quantitative constraints parsed from the brief:
+• Payload: ${mission.payloadKg} kg
+• Cruise speed: ${mission.cruiseMs} m/s
+• Wingspan HARD LIMIT: ≤ ${mission.wingspanLimit} m
 • Maximize L/D (Lift-to-Drag) ratio
-• Wingspan HARD LIMIT: ≤ 2.0 m
 • Longitudinally stable: static margin 5–25% MAC
 • Directionally stable: Cnβ > 0
 • Laterally stable: Clβ < 0
@@ -27,8 +30,10 @@ Workflow:
 Be concise. Cite specific numbers. One final recommendation only.`;
 }
 
-export async function runSubagent({ id, focus, initialParams, onProgress, signal }) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+export async function runSubagent({
+  id, focus, initialParams, onProgress, signal, missionText, mission, apiKey,
+}) {
+  const client = new Anthropic({ apiKey });
   const simulations = [];
 
   const messages = [
@@ -44,7 +49,7 @@ export async function runSubagent({ id, focus, initialParams, onProgress, signal
     const response = await client.messages.create({
       model: 'claude-opus-4-8',
       max_tokens: 1024,
-      system: buildSystemPrompt(id, focus),
+      system: buildSystemPrompt(id, focus, missionText, mission),
       tools: [simulationTool],
       messages,
     });
@@ -69,7 +74,7 @@ export async function runSubagent({ id, focus, initialParams, onProgress, signal
     const toolResults = [];
     for (const tu of toolUses) {
       if (tu.name === 'run_simulation') {
-        const sim = runSimulation(tu.input);
+        const sim = runSimulation(tu.input, mission);
         simulations.push(sim);
 
         onProgress({

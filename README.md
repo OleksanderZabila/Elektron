@@ -23,10 +23,14 @@ Runs a multi-agent design study for a fixed-wing surveillance drone:
    ```
    npm install
    ```
-3. Create a `.env` file in the project root:
-   ```
-   ANTHROPIC_API_KEY=sk-ant-...
-   ```
+3. Provide an Anthropic API key (either option works):
+   - **In-app:** launch the app, click the ⚙ (Settings) button, paste your key. It is stored
+     locally and encrypted via the OS keychain (DPAPI on Windows). This is the only option for
+     the packaged `.exe`.
+   - **Dev / .env:** create a `.env` file in the project root:
+     ```
+     ANTHROPIC_API_KEY=sk-ant-...
+     ```
 4. Run:
    ```
    npm start
@@ -34,7 +38,33 @@ Runs a multi-agent design study for a fixed-wing surveillance drone:
 
 ## Usage
 
-Press **Run Study** to launch the multi-agent simulation. The left panel shows live agent activity; the right panel displays the final report with charts and design cards once the study completes (~2–3 minutes depending on API speed).
+1. Edit the **Mission Prompt** at the top of the left panel (it is pre-filled with the default
+   surveillance-drone brief). The payload mass, cruise speed, and wingspan limit are parsed
+   straight from this text and drive the simulation.
+2. Press **Run Study** to launch the 5 parallel subagents.
+3. The left panel shows live agent activity; the right panel displays the final report with
+   charts and design cards once the study completes (~2–3 minutes depending on API speed).
+
+## Building a Windows .exe
+
+```
+npm run build:win
+```
+
+This builds the production Vite bundles and assembles a runnable Windows app at:
+
+```
+out/openvsp-agent-win32-x64/openvsp-agent.exe
+```
+
+Double-click `openvsp-agent.exe` to launch. The packaged app has no `.env`, so enter the
+API key via the in-app ⚙ Settings dialog on first run.
+
+> **Why not `electron-forge make`?** Under Node 26, `@electron/packager` (used by Forge's
+> `package`/`make`) silently aborts during its finalize step, so it produces no output. The
+> `build:win` script reuses Forge's production Vite build and then assembles the app around the
+> prebuilt Electron runtime via `scripts/assemble.mjs`, which is immune to that bug. See
+> `future_work.md` for the path to a signed installer.
 
 ## Note on OpenVSP
 

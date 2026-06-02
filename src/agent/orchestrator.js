@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { runSubagent } from './subagent.js';
+import { parseMission, DEFAULT_MISSION } from './mission.js';
 
 // Five distinct design strategies for the parallel search
 const SUBAGENT_CONFIGS = [
@@ -49,21 +50,21 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function runOrchestrator(onEvent, signal) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+export async function runOrchestrator(onEvent, signal, missionText, apiKey) {
+  const client = new Anthropic({ apiKey });
+  const brief = (missionText && missionText.trim()) || DEFAULT_MISSION;
+  const mission = parseMission(brief);
 
   // ── Phase 1: Strategy ──────────────────────────────────────────────────────
   onEvent({
     type: 'orchestrator_text',
     phase: 'init',
     text:
-      'Initializing multi-agent aerodynamic design study.\n\n' +
-      'Mission: Fixed-wing surveillance drone\n' +
-      '  • Payload:  1.5 kg\n' +
-      '  • Cruise:   22 m/s\n' +
-      '  • Wingspan: ≤ 2.0 m (hard limit)\n' +
-      '  • Objective: maximize L/D ratio\n' +
-      '  • Stability: longitudinal SM 5–25% MAC, Cnβ > 0, Clβ < 0',
+      'Executing mission brief:\n\n' +
+      brief +
+      '\n\nParsed targets → payload ' + mission.payloadKg + ' kg · cruise ' +
+      mission.cruiseMs + ' m/s · wingspan ≤ ' + mission.wingspanLimit +
+      ' m · maximize L/D · stability: SM 5–25% MAC, Cnβ > 0, Clβ < 0.',
   });
 
   await sleep(200);
@@ -77,8 +78,10 @@ export async function runOrchestrator(onEvent, signal) {
       {
         role: 'user',
         content:
-          'You are orchestrating a 5-agent parallel UAV design study for a fixed-wing ' +
-          'surveillance drone (payload 1.5 kg, cruise 22 m/s, wingspan ≤ 2 m, maximize L/D).\n\n' +
+          'You are orchestrating a 5-agent parallel UAV design study.\n\n' +
+          'Mission brief from the user:\n' + brief + '\n\n' +
+          `Parsed constraints: payload ${mission.payloadKg} kg, cruise ${mission.cruiseMs} m/s, ` +
+          `wingspan ≤ ${mission.wingspanLimit} m, maximize L/D.\n\n` +
           'The five subagents focus on:\n' +
           '1. High AR efficiency (AR≈11, NACA 4412)\n' +
           '2. Stability-first (generous tail, AR≈9)\n' +
@@ -115,6 +118,9 @@ export async function runOrchestrator(onEvent, signal) {
       initialParams: cfg.initialParams,
       onProgress: onEvent,
       signal,
+      missionText: brief,
+      mission,
+      apiKey,
     })
   );
 
@@ -153,7 +159,8 @@ export async function runOrchestrator(onEvent, signal) {
         role: 'user',
         content:
           'You are the chief aerodynamics engineer reviewing results from 5 parallel UAV design subagents.\n\n' +
-          'Requirements: payload 1.5 kg, cruise 22 m/s, wingspan ≤ 2.0 m, maximize L/D, ' +
+          `Requirements: payload ${mission.payloadKg} kg, cruise ${mission.cruiseMs} m/s, ` +
+          `wingspan ≤ ${mission.wingspanLimit} m, maximize L/D, ` +
           'longitudinal SM 5–25% MAC, Cnβ > 0, Clβ < 0.\n\n' +
           `Subagent results:\n${summaries}\n\n` +
           'Please:\n' +

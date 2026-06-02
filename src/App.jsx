@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ChatPanel from './components/ChatPanel.jsx';
 import ReportPanel from './components/ReportPanel.jsx';
+import SettingsModal from './components/SettingsModal.jsx';
+import { DEFAULT_MISSION } from './agent/mission.js';
 
 export default function App() {
   const [status, setStatus] = useState('idle'); // idle | running | done | error
@@ -8,6 +10,9 @@ export default function App() {
   const [simulations, setSimulations] = useState([]);
   const [subagentSummaries, setSubagentSummaries] = useState([]);
   const [report, setReport] = useState(null);
+  const [mission, setMission] = useState(DEFAULT_MISSION);
+  const [showSettings, setShowSettings] = useState(false);
+  const [keyStatus, setKeyStatus] = useState(null);
   const msgIdRef = useRef(0);
 
   const nextId = () => ++msgIdRef.current;
@@ -16,8 +21,14 @@ export default function App() {
     const unsub = window.electronAPI.onAgentEvent((event) => {
       handleEvent(event);
     });
+    window.electronAPI.getKeyStatus().then(setKeyStatus);
     return unsub;
   }, []);
+
+  async function handleSaveKey(key) {
+    const status = await window.electronAPI.setApiKey(key);
+    setKeyStatus(status);
+  }
 
   function handleEvent(event) {
     switch (event.type) {
@@ -86,6 +97,11 @@ export default function App() {
       setStatus('idle');
       return;
     }
+    // Can't run without a key — open Settings instead of failing silently.
+    if (!keyStatus?.set) {
+      setShowSettings(true);
+      return;
+    }
     setStatus('running');
     setMessages([]);
     setSimulations([]);
@@ -93,7 +109,7 @@ export default function App() {
     setReport(null);
     msgIdRef.current = 0;
 
-    const result = await window.electronAPI.startAgent();
+    const result = await window.electronAPI.startAgent(mission);
     if (result?.error) {
       setMessages((prev) => [
         ...prev,
@@ -128,6 +144,17 @@ export default function App() {
             <div className={`status-dot ${status}`} />
             <span>{statusLabel}</span>
           </div>
+          {keyStatus && !keyStatus.set && (
+            <span className="key-warning" title="No API key set">⚠ No API key</span>
+          )}
+          <button
+            className="btn-icon"
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+            aria-label="Settings"
+          >
+            ⚙
+          </button>
           <button className={`btn-run ${status}`} onClick={handleRun}>
             {btnLabel}
           </button>
@@ -135,7 +162,12 @@ export default function App() {
       </header>
 
       <div className="app-body">
-        <ChatPanel messages={messages} status={status} />
+        <ChatPanel
+          messages={messages}
+          status={status}
+          mission={mission}
+          onMissionChange={setMission}
+        />
         <ReportPanel
           report={report}
           simulations={simulations}
@@ -143,6 +175,14 @@ export default function App() {
           status={status}
         />
       </div>
+
+      {showSettings && (
+        <SettingsModal
+          keyStatus={keyStatus}
+          onClose={() => setShowSettings(false)}
+          onSave={handleSaveKey}
+        />
+      )}
     </div>
   );
 }
