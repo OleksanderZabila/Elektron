@@ -77,6 +77,14 @@ html, body, #root {
   color: var(--text3);
 }
 
+.app-version {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text3);
+  font-family: var(--mono);
+  vertical-align: middle;
+}
+
 .app-body {
   display: flex;
   flex: 1;
@@ -304,3 +312,90 @@ html, body, #root {
 .btn-ghost { background: transparent; color: var(--danger); border-color: transparent; }
 .btn-ghost:hover { background: rgba(239,68,68,0.1); }
 .btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── 3D model viewer ──────────────────────────────────────────────────────── */
+.btn-3d {
+  margin-left: auto;
+  align-self: center;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(34,197,94,0.5);
+  background: rgba(34,197,94,0.12);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btn-3d:hover { background: rgba(34,197,94,0.22); }
+
+.model-modal {
+  width: 92vw;
+  height: 88vh;
+  max-width: 1400px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.model-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #0b0e16;
+}
+.model-canvas-wrap canvas { display: block; }
+
+.model-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+}
+
+.r3f-label {
+  background: rgba(15, 17, 23, 0.85);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.model-legend {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  background: rgba(15, 17, 23, 0.82);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.8;
+  pointer-events: none;
+}
+.model-legend b { color: var(--text); font-weight: 600; margin-right: 6px; }
+
+.model-hint {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  background: rgba(15, 17, 23, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text3);
+  pointer-events: none;
+}

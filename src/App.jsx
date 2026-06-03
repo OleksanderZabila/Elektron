@@ -14,8 +14,17 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [keyStatus, setKeyStatus] = useState(null);
   const msgIdRef = useRef(0);
+  const busyRef = useRef(false); // W2: guards against double-start within a tick
 
   const nextId = () => ++msgIdRef.current;
+
+  function resetStudy() {
+    setMessages([]);
+    setSimulations([]);
+    setSubagentSummaries([]);
+    setReport(null);
+    msgIdRef.current = 0;
+  }
 
   useEffect(() => {
     const unsub = window.electronAPI.onAgentEvent((event) => {
@@ -76,6 +85,7 @@ export default function App() {
         setReport(event);
         setSubagentSummaries(event.subagentSummaries || []);
         setStatus('done');
+        busyRef.current = false;
         break;
 
       case 'error':
@@ -84,6 +94,7 @@ export default function App() {
           { id: nextId(), role: 'error', text: event.message, ts: Date.now() },
         ]);
         setStatus('error');
+        busyRef.current = false;
         break;
 
       default:
@@ -93,24 +104,28 @@ export default function App() {
 
   async function handleRun() {
     if (status === 'running') {
+      // W3: cancel returns to a clean, consistent state (both panels agree).
       await window.electronAPI.cancelAgent();
+      busyRef.current = false;
+      resetStudy();
       setStatus('idle');
       return;
     }
+    // W2: block a second synchronous start before `status` has committed.
+    if (busyRef.current) return;
     // Can't run without a key — open Settings instead of failing silently.
     if (!keyStatus?.set) {
       setShowSettings(true);
       return;
     }
+
+    busyRef.current = true;
+    resetStudy();
     setStatus('running');
-    setMessages([]);
-    setSimulations([]);
-    setSubagentSummaries([]);
-    setReport(null);
-    msgIdRef.current = 0;
 
     const result = await window.electronAPI.startAgent(mission);
     if (result?.error) {
+      busyRef.current = false;
       setMessages((prev) => [
         ...prev,
         { id: nextId(), role: 'error', text: result.error, ts: Date.now() },
@@ -134,7 +149,9 @@ export default function App() {
         <div className="app-header-left">
           <div className="app-logo">✈</div>
           <div>
-            <div className="app-title">OpenVSP Agent</div>
+            <div className="app-title">
+              OpenVSP Agent <span className="app-version">v{__APP_VERSION__}</span>
+            </div>
             <div className="app-subtitle">AI-driven aerodynamic design study</div>
           </div>
         </div>

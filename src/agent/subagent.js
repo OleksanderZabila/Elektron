@@ -3,6 +3,11 @@ import { runSimulation } from './openvsp-mock.js';
 import { simulationTool } from './tools.js';
 
 const MAX_TOOL_ROUNDS = 5;
+const MAX_RETRIES = 4; // SDK retries 429/500/timeouts with backoff + honors retry-after
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function buildSystemPrompt(id, focus, missionText, mission) {
   return `You are Subagent ${id} in a parallel multi-agent UAV design study.
@@ -19,6 +24,12 @@ Quantitative constraints parsed from the brief:
 • Directionally stable: Cnβ > 0
 • Laterally stable: Clβ < 0
 
+Longitudinal balance: static margin SM = NP − cg_position. Your two levers are cg_position
+(move it forward = larger SM, but that adds trim drag and costs L/D) and tail_volume_coeff_h
+(a bigger tail pushes the neutral point aft = larger SM). Aim for SM ≈ 8–15% MAC for a good
+stability/efficiency balance; SM < 5% or > 25% fails. If SM is out of range, adjust cg_position
+first (cheapest), then resize the tail.
+
 Your design focus: ${focus}
 
 Workflow:
@@ -32,9 +43,14 @@ Be concise. Cite specific numbers. One final recommendation only.`;
 
 export async function runSubagent({
   id, focus, initialParams, onProgress, signal, missionText, mission, apiKey,
+  startDelayMs = 0,
 }) {
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey, maxRetries: MAX_RETRIES });
   const simulations = [];
+  let runError = null;
+
+  // Stagger the initial burst across the 5 agents to ease API rate limits.
+  if (startDelayMs > 0) await sleep(startDelayMs);
 
   const messages = [
     {
@@ -46,13 +62,26 @@ export async function runSubagent({
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     if (signal?.aborted) break;
 
-    const response = await client.messages.create({
-      model: 'claude-opus-4-8',
-      max_tokens: 1024,
-      system: buildSystemPrompt(id, focus, missionText, mission),
-      tools: [simulationTool],
-      messages,
-    });
+    let response;
+    try {
+      response = await client.messages.create(
+        {
+          model: 'claude-opus-4-8',
+          max_tokens: 1024,
+          system: buildSystemPrompt(id, focus, missionText, mission),
+          tools: [simulationTool],
+          messages,
+        },
+        { signal }
+      );
+    } catch (err) {
+      if (signal?.aborted) break;     // cancelled — stop quietly
+      runError = err;                 // real error — fail THIS agent only, not the study
+      break;
+    }
+
+    // Abort may have fired during the request — don't emit a cancelled run's events.
+    if (signal?.aborted) break;
 
     const toolUses = response.content.filter((b) => b.type === 'tool_use');
     const textBlocks = response.content.filter((b) => b.type === 'text');
@@ -111,5 +140,12 @@ export async function runSubagent({
       .join('\n')
       .trim() || 'No analysis text.';
 
-  return { id, focus, simulations, bestSimulation, finalAnalysis: finalText };
+  return {
+    id,
+    focus,
+    simulations,
+    bestSimulation,
+    finalAnalysis: finalText,
+    error: runError ? (runError.message || String(runError)) : null,
+  };
 }

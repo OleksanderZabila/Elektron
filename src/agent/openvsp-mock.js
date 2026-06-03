@@ -8,6 +8,13 @@ const AIRFRAME_KG = 0.8; // structure + avionics + propulsion (excludes payload)
 // Defaults if the mission brief omits a value.
 const MISSION_DEFAULTS = { payloadKg: 1.5, cruiseMs: 22, wingspanLimit: 2.0 };
 
+// Longitudinal-stability + trim-drag model constants.
+const TAIL_AR = 4.5;     // assumed horizontal-tail aspect ratio (sets CLαh)
+const ETA_H = 0.90;      // horizontal-tail efficiency (dynamic-pressure ratio)
+const X_AC = 0.25;       // wing aerodynamic centre, fraction of MAC
+const K_TRIM = 0.02;     // lumped trim-drag coefficient vs static margin
+const CG_DEFAULT = 0.30; // CG (fraction of MAC) if the caller omits it
+
 const AIRFOILS = {
   'NACA 2412': { cl_alpha_2d: 6.28, cl_max: 1.30, cd_profile: 0.0058, cm_ac: -0.048 },
   'NACA 4412': { cl_alpha_2d: 6.30, cl_max: 1.55, cd_profile: 0.0070, cm_ac: -0.098 },
@@ -27,6 +34,7 @@ export function runSimulation(params, mission = {}) {
     airfoil,
     tail_volume_coeff_h,
     tail_volume_coeff_v,
+    cg_position = CG_DEFAULT,
   } = params;
 
   // Mission-driven operating point (parsed from the user's brief).
@@ -63,6 +71,17 @@ export function runSimulation(params, mission = {}) {
     };
   }
 
+  // ── Longitudinal stability (computed before drag so trim drag can use SM) ──
+  // NP = wing AC + horizontal-tail contribution. Vh already equals Sh·lh/(S·MAC),
+  // so the tail's neutral-point shift is eta_h·Vh·(CLαh/CLαw)·(1 − dε/dα).
+  const l_tail = wingspan * 0.55;
+  const CL_alpha_w = (foil.cl_alpha_2d * aspect_ratio) / (aspect_ratio + 2); // Helmbold (3D wing)
+  const CL_alpha_h = (6.28 * TAIL_AR) / (TAIL_AR + 2);                       // 3D tail lift slope
+  const deps_dalpha = (2 * CL_alpha_w) / (Math.PI * aspect_ratio);          // wing downwash at tail
+  const NP = X_AC + ETA_H * tail_volume_coeff_h * (CL_alpha_h / CL_alpha_w) * (1 - deps_dalpha);
+  const CG = cg_position;          // controllable design input (fraction of MAC)
+  const SM = NP - CG;
+
   // Oswald efficiency (Raymer empirical, corrected for sweep)
   const sweep_rad = (sweep_angle_deg * Math.PI) / 180;
   const e_raw = 1.78 * (1 - 0.045 * aspect_ratio ** 0.68) - 0.64;
@@ -76,20 +95,15 @@ export function runSimulation(params, mission = {}) {
   const CD_tail = foil.cd_profile * (0.12 + tail_volume_coeff_h * 0.12);
   const CD_sweep = 0.0002 * (sweep_angle_deg / 5);
   const CD_0 = foil.cd_profile + CD_fus + CD_tail + CD_sweep;
-  const CD_total = CD_0 + CD_induced;
+
+  // Trim drag: holding the CG ahead of the NP needs tail download → extra drag,
+  // so a larger static margin (more forward CG) costs L/D.
+  const CD_trim = K_TRIM * SM ** 2;
+  const CD_total = CD_0 + CD_induced + CD_trim;
 
   const LD_ratio = CL_cruise / CD_total;
   const Thrust = W / LD_ratio;
   const Power_W = Thrust * V_CRUISE;
-
-  // Longitudinal stability — Datcom-style neutral point estimate
-  const l_tail = wingspan * 0.55;
-  const S_tail_h = (tail_volume_coeff_h * S_wing * MAC) / l_tail;
-  const CL_alpha_w = foil.cl_alpha_2d * aspect_ratio / (aspect_ratio + 2); // Helmbold
-  const eta_h = 0.90; // tail efficiency
-  const NP = 0.25 + (eta_h * S_tail_h * l_tail) / (S_wing * MAC * CL_alpha_w) - 0.05;
-  const CG = 0.28; // assumed CG at 28% MAC
-  const SM = NP - CG;
 
   // Directional stability (Cnβ > 0 required)
   const S_tail_v = (tail_volume_coeff_v * S_wing * wingspan) / l_tail;
@@ -111,15 +125,18 @@ export function runSimulation(params, mission = {}) {
 
   return {
     success: true,
-    params,
+    params: { ...params, cg_position: CG },
     results: {
       CL_cruise:  r(CL_cruise, 4),
       CD_0:       r(CD_0, 5),
       CD_induced: r(CD_induced, 5),
+      CD_trim:    r(CD_trim, 5),
       CD_total:   r(CD_total, 5),
       LD_ratio:   r(LD_ratio, 2),
       e_oswald:   r(e, 3),
       SM_pct:     r(SM * 100, 1),
+      NP_pct:     r(NP * 100, 1),
+      CG_pct:     r(CG * 100, 1),
       Cnbeta:     r(Cnbeta, 4),
       Clbeta:     r(Clbeta, 4),
       S_wing_m2:  r(S_wing, 4),

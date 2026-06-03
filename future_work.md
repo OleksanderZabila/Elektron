@@ -2,7 +2,10 @@
 
 ## Real OpenVSP Integration
 
-The app currently uses a physics-based aerodynamic mock (lifting-line theory + DATCOM empiricals). To integrate real OpenVSP:
+**This is the single most important next step.** The aerodynamics today are a *stub*: a
+physics-based mock (lifting-line theory + DATCOM empiricals) in `src/agent/openvsp-mock.js`. It is
+plausible and internally consistent, but it is **not** a real CFD/panel-method solve — no design
+decision should be trusted operationally until this is replaced. To integrate real OpenVSP:
 
 1. **Install OpenVSP** — download from openvsp.org and expose `vsp` CLI on PATH.
 2. **Script generation** — each subagent's `run_simulation` tool call should write a `.vsp3` file (parametric geometry via `vspaero` or the Python API `openvsp`), then invoke `vspaero` for VSPAERO panel-method analysis.
@@ -17,12 +20,22 @@ Currently the chat panel appends complete messages. Switching to streaming (SSE 
 
 Add an SQLite or JSON-based session store so previous design studies can be recalled. Each study would be a timestamped entry with full parameter history, simulation logs, and the final report.
 
-## 3D Model Preview (Optional)
+## 3D Model Preview (Optional) — implemented
 
-The task allows breaking the single-window rule for this feature. Implementation path:
-- Generate a `.vsp3` model during each simulation
-- Render it using Three.js + a GLTF export from OpenVSP
-- Show via a secondary BrowserWindow or in-panel WebGL canvas
+A parametric 3D preview is built in. The winner banner has a **View 3D Model** button that opens a
+dark-themed, orbit-controlled modal (drag = rotate, scroll = zoom) using `@react-three/fiber` +
+`@react-three/drei`. The drone is generated programmatically from the winning design's parameters
+(`wingspan`, `aspect_ratio`, `taper_ratio`, `sweep_angle_deg`, and the tail volume coefficients)
+via `ExtrudeGeometry` + primitives — so a high-AR wing visibly differs from a compact low-AR one,
+and larger tail volumes render as visibly larger tails. Parts are labelled (wing, horizontal tail,
+vertical tail, fuselage). See `src/components/Model3DModal.jsx`.
+
+Next steps to deepen it:
+- Replace the flat extruded plates with true airfoil cross-sections (actual NACA/Clark-Y section
+  coordinates) lofted along the span.
+- Add dihedral and twist/washout once the mock models them.
+- When real OpenVSP is wired in, render the actual `.vsp3` geometry (GLTF export) instead of the
+  parametric approximation.
 
 ## Agent Refinement Loop
 
@@ -30,6 +43,17 @@ Currently each subagent runs a fixed number of simulations. A more sophisticated
 1. Run a coarse parameter sweep
 2. Identify the Pareto-optimal region
 3. Refine with a denser grid around that region (Bayesian optimization or gradient-free search)
+
+## API Rate Limiting & Cost Controls
+
+The study fires up to 5 Opus subagents in parallel, each doing several tool rounds. Current
+mitigations: subagents stagger their first call, the Anthropic client uses `maxRetries: 4` (the SDK
+does exponential backoff and honors `retry-after`), and one subagent failing no longer sinks the
+study (`Promise.allSettled`). For production this should become:
+- A real concurrency / token-bucket queue that respects the account's requests- and
+  tokens-per-minute limits, instead of a fixed stagger.
+- A per-run cost/budget cap with a visible estimate before launch (Opus dominates cost).
+- Optional model tiering — e.g. Haiku for cheap exploration rounds, Opus only for refinement.
 
 ## Packaging & Signed Installer
 

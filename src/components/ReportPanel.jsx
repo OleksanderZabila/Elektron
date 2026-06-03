@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SimCard from './SimCard.jsx';
 import { LDBarChart, DragPolarChart, WingspanLDScatter, RadarCompare } from './Charts.jsx';
+import Model3DModal from './Model3DModal.jsx';
 import './ReportPanel.css';
 
 function ChartBlock({ title, children }) {
@@ -37,6 +38,7 @@ function EmptyState({ status }) {
 }
 
 export default function ReportPanel({ report, simulations, subagentSummaries, status }) {
+  const [show3D, setShow3D] = useState(false);
   const hasData = subagentSummaries.length > 0;
   const winnerId = report?.winner?.subagentId ?? null;
 
@@ -94,6 +96,9 @@ export default function ReportPanel({ report, simulations, subagentSummaries, st
                 <span className="wm-lbl">Airfoil</span>
               </div>
             </div>
+            <button className="btn-3d" onClick={() => setShow3D(true)} title="Open parametric 3D model">
+              ◳ View 3D Model
+            </button>
           </div>
         )}
 
@@ -140,6 +145,10 @@ export default function ReportPanel({ report, simulations, subagentSummaries, st
             ))}
         </div>
       </div>
+
+      {show3D && winnerSim && (
+        <Model3DModal winnerSim={winnerSim} onClose={() => setShow3D(false)} />
+      )}
     </div>
   );
 }

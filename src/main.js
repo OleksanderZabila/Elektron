@@ -43,23 +43,31 @@ function emit(event) {
 }
 
 ipcMain.handle('agent:start', async (_event, missionText) => {
+  // W1: main process is authoritative — never run two studies at once.
+  if (runAbortController) {
+    return { error: 'A study is already running.' };
+  }
+
   const apiKey = getEffectiveApiKey();
   if (!apiKey) {
     return { error: 'No Anthropic API key found. Add it in Settings (gear icon) or a .env file.' };
   }
 
-  runAbortController = new AbortController();
+  const controller = new AbortController();
+  runAbortController = controller;
 
   try {
-    await runOrchestrator(emit, runAbortController.signal, missionText, apiKey);
+    await runOrchestrator(emit, controller.signal, missionText, apiKey);
     return { success: true };
   } catch (err) {
-    if (err.name === 'AbortError') return { cancelled: true };
+    if (controller.signal.aborted || err.name === 'AbortError') return { cancelled: true };
     console.error('[Orchestrator error]', err);
-    emit({ type: 'error', message: err.message });
+    // Surface once, via the IPC return value (handled in the renderer). No emit
+    // here — emitting *and* returning produced duplicate error bubbles.
     return { error: err.message };
   } finally {
-    runAbortController = null;
+    // Only clear the global if it still points to *this* run (cancel→rerun safe).
+    if (runAbortController === controller) runAbortController = null;
   }
 });
 

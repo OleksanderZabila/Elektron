@@ -1,9 +1,9 @@
 export const simulationTool = {
   name: 'run_simulation',
   description: `Run aerodynamic analysis for a fixed-wing UAV via OpenVSP (mock).
-Returns: CL/CD breakdown, L/D ratio, static margin, Cnβ, wing geometry, power.
+Returns: CL/CD breakdown (incl. trim drag), L/D ratio, neutral point, static margin, Cnβ, wing geometry, power.
 Mission: payload 1.5 kg, cruise 22 m/s, wingspan ≤ 2 m, maximize L/D, must be stable.
-Tip: high AR reduces induced drag; tail volume coefficients drive stability margins.`,
+Tip: high AR reduces induced drag; static margin SM = NP − cg_position, set by CG position AND tail volume.`,
   input_schema: {
     type: 'object',
     properties: {
@@ -36,6 +36,13 @@ Tip: high AR reduces induced drag; tail volume coefficients drive stability marg
         type: 'number',
         description: 'Vertical tail volume Vv = Sv·lv/(S·b). Controls yaw stability. Range 0.030–0.070.',
       },
+      cg_position: {
+        type: 'number',
+        description:
+          'Centre of gravity as a fraction of MAC. Range 0.15–0.45. PRIMARY longitudinal-stability ' +
+          'lever: static margin SM = NP − cg_position. Move CG forward (smaller) to raise SM, aft ' +
+          '(larger) to lower it; target SM 5–25% MAC. Forward CG also adds trim drag (costs L/D).',
+      },
     },
     required: [
       'wingspan',
@@ -45,6 +52,7 @@ Tip: high AR reduces induced drag; tail volume coefficients drive stability marg
       'airfoil',
       'tail_volume_coeff_h',
       'tail_volume_coeff_v',
+      'cg_position',
     ],
   },
 };

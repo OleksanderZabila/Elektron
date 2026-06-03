@@ -24,7 +24,7 @@ function ReqRow({ label, req }) {
 }
 
 export default function SimCard({ summary, isWinner }) {
-  const { id, focus, bestSimulation: sim, simCount } = summary;
+  const { id, focus, bestSimulation: sim, simCount, error } = summary;
 
   const color = AGENT_COLORS[id] || '#64748b';
 
@@ -33,10 +33,10 @@ export default function SimCard({ summary, isWinner }) {
       <div className="sim-card failed" style={{ borderTopColor: color }}>
         <div className="sc-header">
           <span className="sc-agent-label" style={{ color }}>AGENT {id}</span>
-          <span className="sc-status-badge fail">NO VALID DESIGN</span>
+          <span className="sc-status-badge fail">{error ? 'ERROR' : 'NO VALID DESIGN'}</span>
         </div>
         <div className="sc-focus">{focus}</div>
-        <div className="sc-error">{sim?.error || 'No successful simulation.'}</div>
+        <div className="sc-error">{error || sim?.error || 'No successful simulation.'}</div>
       </div>
     );
   }
