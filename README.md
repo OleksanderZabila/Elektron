@@ -55,11 +55,18 @@ winner is generated from its actual simulation parameters.
 
 ## Setup
 
-1. Clone the repo
+1. Clone the repo:
+   ```
+   git clone https://github.com/OleksanderZabila/Elektron.git
+   cd Elektron
+   ```
 2. Install dependencies:
    ```
    npm install
    ```
+   > **Note for Windows users with non-ASCII paths** (e.g. Cyrillic in username): `npm install`
+   > automatically runs a `postinstall` script that ensures the Electron binary is correctly
+   > extracted — no manual steps needed.
 3. Provide an Anthropic API key (either option works):
    - **In-app:** launch the app, click the ⚙ (Settings) button, paste your key. It is stored
      locally and encrypted via the OS keychain (DPAPI on Windows). This is the only option for the
