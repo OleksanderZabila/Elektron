@@ -94,18 +94,28 @@ winner is generated from its actual simulation parameters.
 
 ## Building a Windows .exe
 
+**Easiest — double-click `build.bat`.** It installs dependencies (first run only), builds the app,
+and drops an **"OpenVSP Agent" shortcut on your Desktop**.
+
+**Or from the console:**
+
 ```
 npm run build:win
 ```
 
-Produces a runnable app at `out/openvsp-agent-win32-x64/openvsp-agent.exe`. The packaged app has no
-`.env`, so enter the API key via the in-app ⚙ Settings dialog on first run.
+Both do the same thing: produce a runnable app at `out/openvsp-agent-win32-x64/openvsp-agent.exe`
+and create the Desktop shortcut. The packaged app has no `.env`, so enter the API key via the
+in-app ⚙ Settings dialog on first run.
 
-> **Why not `electron-forge make`?** Under Node 26, `@electron/packager` (used by Forge's
-> `package`/`make`) silently aborts during its finalize step and produces no output. `build:win`
-> reuses Forge's production Vite build and then assembles the app around the prebuilt Electron
-> runtime via `scripts/assemble.mjs`, which is immune to that bug. See `future_work.md` for the path
-> to a signed installer.
+> **Why a custom `build:win` script?** Two issues are handled automatically by
+> `scripts/build-win.mjs`:
+> 1. Under Node 26, `@electron/packager` (Forge's `package`/`make`) silently aborts during its
+>    finalize step. The script reuses Forge's production Vite build and then assembles the app around
+>    the prebuilt Electron runtime via `scripts/assemble.mjs`, which is immune to that bug.
+> 2. `electron-forge package` would otherwise try to re-download Electron from GitHub (which can fail
+>    with a **504 Gateway Time-out**). The script pins the local cache and skips that download.
+>
+> See `future_work.md` for the path to a signed installer.
 
 ## Note on the aerodynamics
 

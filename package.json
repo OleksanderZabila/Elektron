@@ -9,7 +9,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "build:win": "electron-forge package && node scripts/assemble.mjs",
+    "build:win": "node scripts/build-win.mjs",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
     "postinstall": "node scripts/fix-electron.mjs"
