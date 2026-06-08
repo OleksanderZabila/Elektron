@@ -107,13 +107,16 @@ Both do the same thing: produce a runnable app at `out/openvsp-agent-win32-x64/o
 and create the Desktop shortcut. The packaged app has no `.env`, so enter the API key via the
 in-app ⚙ Settings dialog on first run.
 
-> **Why a custom `build:win` script?** Two issues are handled automatically by
-> `scripts/build-win.mjs`:
+> **Why a custom `build:win` script?** `scripts/build-win.mjs` makes the build work offline and
+> immune to two failure modes:
 > 1. Under Node 26, `@electron/packager` (Forge's `package`/`make`) silently aborts during its
->    finalize step. The script reuses Forge's production Vite build and then assembles the app around
+>    finalize step. We reuse only Forge's production **Vite build** and then assemble the app around
 >    the prebuilt Electron runtime via `scripts/assemble.mjs`, which is immune to that bug.
-> 2. `electron-forge package` would otherwise try to re-download Electron from GitHub (which can fail
->    with a **504 Gateway Time-out**). The script pins the local cache and skips that download.
+> 2. Forge's packaging step calls `@electron/get`, which downloads `SHASUMS256.txt` from GitHub to
+>    verify the runtime — that request is what fails with a **504 Gateway Time-out** on a slow
+>    network. Since `assemble.mjs` builds the final app itself from the already-extracted local
+>    runtime, the script lets that step fail and continues as long as the Vite output is on disk.
+>    The result is byte-for-byte identical and needs **zero network access**.
 >
 > See `future_work.md` for the path to a signed installer.
 

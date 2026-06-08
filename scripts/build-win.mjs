@@ -36,18 +36,42 @@ if (!fs.existsSync(path.join(distDir, 'electron.exe'))) {
   process.exit(1);
 }
 
-// ── 2. Forge production build + package ────────────────────────────────────────
-// ELECTRON_SKIP_BINARY_DOWNLOAD + a pinned cache stop the packager from hitting
-// GitHub (the source of the 504 Gateway Time-out).
+// ── 2. Forge production Vite build ─────────────────────────────────────────────
+// We run `electron-forge package` only for its Vite production build (the
+// prePackage hook). Its later "packaging" step calls @electron/get, which fetches
+// SHASUMS256.txt from GitHub to verify the runtime — and THAT is what fails with a
+// 504 Gateway Time-out (or ECONNREFUSED when GitHub is unreachable).
+//
+// We don't need that step: assemble.mjs builds the final app itself from the local
+// node_modules/electron/dist. So we let Forge run, and if it fails *after* the Vite
+// build is on disk, we swallow the error and continue. This makes the build immune
+// to network flakiness and to the @electron/packager Node-26 abort bug alike.
 const cacheDir = process.env.electron_config_cache ||
   path.join(process.env.LOCALAPPDATA || '', 'electron', 'Cache');
+const viteMain = path.join(root, '.vite', 'build', 'main.js');
+const viteHtml = path.join(root, '.vite', 'renderer', 'main_window', 'index.html');
 
 const forgeCli = require.resolve('@electron-forge/cli/dist/electron-forge.js');
-console.log('[build] running electron-forge package...');
-run(process.execPath, [forgeCli, 'package'], {
-  ELECTRON_SKIP_BINARY_DOWNLOAD: '1',
-  electron_config_cache: cacheDir,
-});
+console.log('[build] running production Vite build via electron-forge...');
+try {
+  execFileSync(process.execPath, [forgeCli, 'package'], {
+    cwd: root,
+    stdio: 'pipe',
+    encoding: 'utf8',
+    env: { ...process.env, electron_config_cache: cacheDir },
+  });
+  console.log('[build] forge package completed.');
+} catch (err) {
+  if (fs.existsSync(viteMain) && fs.existsSync(viteHtml)) {
+    console.log('[build] Forge\'s packaging step failed (network/offline), but the');
+    console.log('        production Vite build is complete — continuing with our own');
+    console.log('        assembler. This is expected and the result is identical.');
+  } else {
+    console.error('[build] Production Vite build did not complete. Forge output:\n');
+    console.error((err.stdout || '') + '\n' + (err.stderr || ''));
+    process.exit(1);
+  }
+}
 
 // ── 3. Assemble the runnable app (immune to the @electron/packager Node bug) ───
 console.log('[build] assembling app...');

@@ -1,6 +1,14 @@
 module.exports = {
   packagerConfig: {
     asar: true,
+    // The packager verifies the Electron runtime by downloading SHASUMS256.txt
+    // from GitHub. On flaky networks that request fails (504 Gateway Time-out)
+    // and aborts the whole build. We already have the runtime cached + extracted
+    // (see scripts/fix-electron.mjs), so skip the online checksum check and let
+    // the packager use the cached zip offline.
+    download: {
+      unsafelyDisableChecksums: true,
+    },
   },
   rebuildConfig: {},
   makers: [
